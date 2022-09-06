@@ -3,6 +3,7 @@ from datetime import date, timedelta
 from calendar import monthrange, IllegalMonthError, day_name
 import re
 
+
 class RecurringDate(metaclass=abc.ABCMeta):
     dates = list()
     title = "RecurringDate"
@@ -222,6 +223,8 @@ class RecurringDate(metaclass=abc.ABCMeta):
         return self.old_string_generator_should_have(y=diff_year, m=diff_month, d=diff_day)
 
     def string_how_long_since(self, today=date.today()):
+        if self._event is None or not self._last:
+            return None
         diff_year, diff_month, diff_day = self.how_long_since(today)
         if diff_year == 0 and diff_month == 0 and diff_day == 0:  # TODO possibly remove this and put equivalent in old_string_generator_should_have
             return self.today_string_generator()
@@ -311,7 +314,7 @@ class RecurringDate(metaclass=abc.ABCMeta):
         if next_date < today:
             return self.string_how_long_since_should_have(today, next_date)
         diff_year, diff_month, diff_day = self.date_difference(today, next_date)
-        s = "{d}/{m}/{y}, which is {pretty_time} away"
+        s = "{d:02}/{m:02}/{y}, which is {pretty_time} away"
 
         if diff_year == 0 and diff_month == 0:
             if diff_day == 0:

@@ -77,7 +77,6 @@ class WeeklyDate(RecurringDate):
             else:
                 s += "{event} will not happen again"
         else:
-
             if diff_year == 0 and diff_month == 0 and diff_day == 0:
                 s += self.today_string_generator(predicted)
             else:

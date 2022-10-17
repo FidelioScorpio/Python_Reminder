@@ -15,10 +15,6 @@ class WeeklyDate(RecurringDate):
         self._num_weeks = int(num_weeks)
         if self._num_weeks < 0:
             raise ValueError("numWeeks should be positive")
-            
-        # check syntax via absence of crash:
-        self.old_string_generator(y=1, m=1, d=1)
-        self.new_string_generator(date(1, 1, 1), date(1, 1, 1))
         
         self.title = "[Weekly Event ({})] {}".format(self._num_weeks, event)
         self.dates.append(self)
@@ -26,6 +22,10 @@ class WeeklyDate(RecurringDate):
         self._reminder_delta = self.reminder_length_parser(reminder_length)
         if reminder_col != "":
             self.reminder_col_soon = reminder_col
+            
+        # check syntax via absence of crash:
+        self.old_string_generator(y=1, m=1, d=1)
+        self.new_string_generator(date(1, 1, 1), date(1, 1, 1))
 
     @property
     def the_date(self):

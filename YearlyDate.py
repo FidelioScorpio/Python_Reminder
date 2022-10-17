@@ -12,16 +12,16 @@ class YearlyDate(RecurringDate):
         self._event = string1
         self._string2 = string2
 
-        # check syntax via absence of crash:
-        self.old_string_generator(y=1, m=1, d=1)
-        self.new_string_generator(date(1, 1, 1), date(1, 1, 1))
-
         self.title = "[Yearly Event] {}".format(self._event)
 
         self.dates.append(self)
         self._oneTime = one_time
         self._reminder_delta = self.reminder_length_parser(reminder_length)
         self._mute = mute
+
+        # check syntax via absence of crash:
+        self.old_string_generator(y=1, m=1, d=1)
+        self.new_string_generator(date(1, 1, 1), date(1, 1, 1))
 
     @property
     def the_date(self):
@@ -105,3 +105,4 @@ class BirthdayDate(YearlyDate):
         self._name_plural = string2
 
         self.title = "[Yearly Event] {} birthday".format(self._name_plural)
+

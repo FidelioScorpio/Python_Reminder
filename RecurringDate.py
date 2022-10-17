@@ -200,18 +200,21 @@ class RecurringDate(metaclass=abc.ABCMeta):
         delta = timedelta(total)
         return delta
 
-    def string_next_date(self, today=date.today()):
+    def string_date_colour(self, today=date.today()):
         next_date = self.next_date(today)
         colour_start = ""
-        colour_end = ""
-        if next_date is None:
-            return "will not happen again"
-        elif next_date < today:
+        if next_date < today:
             colour_start = self.reminder_col_now
-            colour_end = "\033[0m"
         elif next_date <= today + self.reminder_delta:
             colour_start = self.reminder_col_soon
-            colour_end = "\033[0m"
+        return colour_start
+
+    def string_next_date(self, today=date.today()):
+        next_date = self.next_date(today)
+        if next_date is None:
+            return "will not happen again"
+        colour_start = self.string_date_colour(today)
+        colour_end = "\033[0m"
         result = self.new_string_generator(next_date, today)
         if result is not None:
             return colour_start + result + colour_end
@@ -220,6 +223,8 @@ class RecurringDate(metaclass=abc.ABCMeta):
         diff_year, diff_month, diff_day = self.how_long_since(today, other_day)
         if diff_year == 0 and diff_month == 0 and diff_day == 0:  # TODO possibly remove this and put equivalent in old_string_generator_should_have
             return self.today_string_generator()
+        if diff_year < 0 or (diff_year == 0 and diff_month < 0) or (diff_year == 0 and diff_month == 0 and diff_day < 0):
+            return None  # Date is -ve
         return self.old_string_generator_should_have(y=diff_year, m=diff_month, d=diff_day)
 
     def string_how_long_since(self, today=date.today()):
@@ -228,6 +233,8 @@ class RecurringDate(metaclass=abc.ABCMeta):
         diff_year, diff_month, diff_day = self.how_long_since(today)
         if diff_year == 0 and diff_month == 0 and diff_day == 0:  # TODO possibly remove this and put equivalent in old_string_generator_should_have
             return self.today_string_generator()
+        if diff_year < 0 or (diff_year == 0 and diff_month < 0) or (diff_year == 0 and diff_month == 0 and diff_day < 0):
+            return None  # Date is -ve
         return self.old_string_generator(y=diff_year, m=diff_month, d=diff_day)
 
     def how_long_since(self, today, other_day=None):
@@ -266,17 +273,23 @@ class RecurringDate(metaclass=abc.ABCMeta):
                 dic[dte] = [recurring_date]
 
         sorted_keys = sorted(dic)
-        if max_num == 0 or max_num > len(dic):
-            max_num = len(dic)
-        if max_date is None:
-            max_date = sorted_keys[len(dic) - 1]
-        for i in range(max_num):
-            if sorted_keys[i] > max_date:
-                break
-            for dt in dic[sorted_keys[i]]:
-                next = dt.string_next_date()
-                if next is not None:
-                    print(next)
+
+        for i in range(len(sorted_keys)):
+            if (max_num == 0 or i < max_num) and \
+               (max_date is None or sorted_keys[i] < max_date):
+                # Print all the dates in this collection because they are within the maximums
+                for dt in dic[sorted_keys[i]]:
+                    next = dt.string_next_date()
+                    if next is not None:
+                        print(next)
+            else:
+                # Exceeds number or date. Only print if the reminder date is coloured
+                for dt in dic[sorted_keys[i]]:
+                    col = dt.string_date_colour()
+                    if len(col) > 0:
+                        next = dt.string_next_date()
+                        if next is not None:
+                            print(next)
 
     @classmethod
     def how_long_ago(cls):

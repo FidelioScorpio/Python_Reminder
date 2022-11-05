@@ -3,6 +3,7 @@ from datetime import date, timedelta
 from calendar import monthrange, IllegalMonthError, day_name
 import re
 
+MAX_WEEKS = 104
 
 class RecurringDate(metaclass=abc.ABCMeta):
     dates = list()
@@ -25,11 +26,10 @@ class RecurringDate(metaclass=abc.ABCMeta):
 
     @staticmethod
     def date_difference(day1, day2):
-        # TODO date-difference doesn't work properly...
-        # TODO I have discovered that the month rollover fails when given a number of days that cannot fit into the month
-        #  I have swapped the ifs in the dday< and dmonth< to fix an issue of getting month = -1 (when event <11mo away?)
+        # Problems:
+        # - It is impossible to be more accutate that weeks with no estimation (months and years are both variable length
+        # - It is not useful to display only in immutable units (weeks and days)
 
-        # This block is from ageDay.py. It may have other issues..
         dyear = day2.year - day1.year
         dmonth = day2.month - day1.month
         dday = day2.day - day1.day
@@ -39,126 +39,33 @@ class RecurringDate(metaclass=abc.ABCMeta):
         if dmonth < 0:
             dyear -= 1
             dmonth += 12
-        return dyear, dmonth, dday
-        # end of block from ageDay.py
-
-        days_set, months_set, years_set = False, False, False
-        days_num, months_num, years_num = 0, 0, 0
-        days_temp, months_temp, years_temp = 0, 0, 0
-        days_adjust, months_adjust, years_adjust = 0, 0, 0
-        num = 0
-        try:
-            if day1 > day2:
-                temp = day1
-                day1 = day2
-                day2 = temp
-            while not (days_set and months_set and years_set):
-                # try jump a year
-                # if error, jump again etc
-                # when not error, if date too high, rollback & set years_set
-                num = 0
-                while not years_set:
-                    years_temp += 1
-                    num += 1
-                    try:
-                        new_date = date(years_temp + years_num + day1.year, day1.month, day1.day)
-
-                        # If date set worked, check it is valid
-                        if new_date < day2:
-                            # valid but still too small
-                            years_num += num
-                            years_adjust = years_temp
-                            years_temp -= num
-                            num = 0
-                        elif new_date == day2:
-                            years_num += num
-                            years_set, months_set, days_set = True, True, True
-                        else:
-                            # we overshot, rollback & mark set
-                            years_temp = years_adjust
-                            years_set = True
-                    except ValueError:  # day is out of range for month
-                        pass
-
-                num = 0
-                while not months_set:
-                    months_temp += 1
-                    num += 1
-                    try:
-                        new_date = date(years_temp + years_num + day1.year, months_temp + months_num + day1.month,
-                                        day1.day)
-
-                        # If date set worked, check it is valid
-                        if new_date < day2:
-                            # valid but still too small
-                            months_num += num
-                            months_adjust = months_temp
-                            months_temp -= num
-                            num = 0
-                        elif new_date == day2:
-                            months_num += num
-                            months_set, days_set = True, True
-                        else:
-                            # we overshot, rollback & mark set
-                            months_temp = months_adjust
-                            months_set = True
-                    except ValueError:
-                        if months_temp + months_num + day1.month < 1:
-                            num -= 1  # redo this number of months because it wasn't a valid date
-                            months_temp += 1
-                        elif months_temp + months_num + day1.month > 12:
-                            num -= 1  # redo this number of months because it wasn't a valid date
-                            months_temp -= 13
-                            years_temp += 1
-                        # maybe the issue is that that number of days doesn't fit in that month..
-
-                num = 0
-                while not days_set:
-                    days_temp += 1
-                    num += 1
-                    try:
-                        new_date = date(years_temp + years_num + day1.year, months_temp + months_num + day1.month,
-                                        days_temp + days_num + day1.day)
-
-                        # If date set worked, check it is valid
-                        if new_date < day2:
-                            # valid but still too small
-                            days_num += num
-                            days_temp -= num
-                            num = 0
-                        elif new_date == day2:
-                            days_num += num
-                            days_set = True
-                        else:
-                            # we overshot, rollback & mark set
-                            days_temp = 0
-                            days_set = True
-                    except ValueError:
-                        num -= 1  # redo this number of days because it wasn't a valid date
-                        if days_temp + days_num + day1.day < 1:
-                            days_temp += 1
-                        elif months_temp + months_num + day1.month < 1:
-                            months_temp += 1
-                        elif months_temp + months_num + day1.month > 12:
-                            months_temp -= 13
-                            years_temp += 1
-                        elif days_temp + days_num + day1.day > monthrange(years_temp + years_num + day1.year,
-                                                                          months_temp + months_num + day1.month)[1]:
-                            days_temp -= 32
-                            months_temp += 1
-            return years_num, months_num, days_num
-        except Exception as ex:
-            print("date_difference error: {} (type = {})".format(ex, type(ex)))
-            print("set: years_set = {}, months_set = {}, days_set = {}".format(years_set, months_set, days_set))
-            print("     years_temp = {}, years_num = {}, day1.year = {}".format(years_temp, years_num, day1.year))
-            print("     months_temp = {}, months_num = {}, day1.month = {}".format(months_temp, months_num, day1.month))
-            print("     days_temp = {}, days_num = {}, day1.day = {}".format(days_temp, days_num, day1.day))
-            print("date: {}/{}/{}".format(years_temp + years_num + day1.year, months_temp + months_num + day1.month,
-                                          days_temp + days_num + day1.day))
-            return None
+        total_day_diff = (day2 - day1).days
+        rem_day_diff = total_day_diff % 7
+        rem_week_diff = int(total_day_diff / 7)
+        # print("days diff is {}, rw {}, rd {}".format(total_day_diff, rem_week_diff, rem_day_diff))
+        return dyear, dmonth, dday, rem_week_diff, rem_day_diff
 
     @staticmethod
-    def get_pretty_time(y, m, d):
+    def get_pretty_time_wd(w, d):
+        s = ""
+        if w > 0:
+            s += "{w} week"
+            if w != 1:
+                s += "s"
+            if d > 0:
+                s += " and "
+            else:
+                s += " "
+        if (d > 0) or w == 0:
+            s += "{d} day"
+            if d != 1:
+                s += "s "
+            else:
+                s += " "
+        return s.strip().format(w=w, d=d)
+
+    @staticmethod
+    def get_pretty_time_ymd(y, m, d):
         s = ""
         if y > 0:
             s += "{y} year"
@@ -185,6 +92,13 @@ class RecurringDate(metaclass=abc.ABCMeta):
             else:
                 s += " "
         return s.strip().format(y=y, m=m, d=d)
+
+    @staticmethod
+    def get_pretty_time(y, m, d, rw, rd):
+        s = "{pretty_ymd}"
+        if rw <= MAX_WEEKS:
+            s = "{pretty_ymd} ({pretty_wd})"
+        return s.format(pretty_ymd=RecurringDate.get_pretty_time_ymd(y,m,d), pretty_wd=RecurringDate.get_pretty_time_wd(rw,rd))
 
     @classmethod
     def reminder_length_parser(cls, reminder_length):
@@ -220,40 +134,38 @@ class RecurringDate(metaclass=abc.ABCMeta):
             return colour_start + result + colour_end
 
     def string_how_long_since_should_have(self, today=date.today(), other_day=None):
-        diff_year, diff_month, diff_day = self.how_long_since(today, other_day)
+        diff_year, diff_month, diff_day, rw, rd = self.how_long_since(today, other_day)
         if diff_year == 0 and diff_month == 0 and diff_day == 0:  # TODO possibly remove this and put equivalent in old_string_generator_should_have
             return self.today_string_generator()
         if diff_year < 0 or (diff_year == 0 and diff_month < 0) or (diff_year == 0 and diff_month == 0 and diff_day < 0):
             return None  # Date is -ve
-        return self.old_string_generator_should_have(y=diff_year, m=diff_month, d=diff_day)
+        return self.old_string_generator_should_have(y=diff_year, m=diff_month, d=diff_day, rw=rw, rd=rd)
 
     def string_how_long_since(self, today=date.today()):
         if self._event is None or not self._last:
             return None
-        diff_year, diff_month, diff_day = self.how_long_since(today)
+        diff_year, diff_month, diff_day, rw, rd = self.how_long_since(today)
         if diff_year == 0 and diff_month == 0 and diff_day == 0:  # TODO possibly remove this and put equivalent in old_string_generator_should_have
             return self.today_string_generator()
         if diff_year < 0 or (diff_year == 0 and diff_month < 0) or (diff_year == 0 and diff_month == 0 and diff_day < 0):
             return None  # Date is -ve
-        return self.old_string_generator(y=diff_year, m=diff_month, d=diff_day)
+        return self.old_string_generator(y=diff_year, m=diff_month, d=diff_day, rw=rw, rd=rd)
 
     def how_long_since(self, today, other_day=None):
         if other_day is None:
             other_day = self.the_date
         # Returns how long today is since the_date
-        diff_year, diff_month, diff_day = self.date_difference(other_day, today)
-        return diff_year, diff_month, diff_day
+        diff_year, diff_month, diff_day, rw, rd = self.date_difference(other_day, today)
+        return diff_year, diff_month, diff_day, rw, rd
 
     def string_how_long_until(self, today=date.today()):
         next_date = self.next_date(today)
         if next_date is None:
             return "will not happen again"
-        diff_year, diff_month, diff_day = self.date_difference(today, next_date)
+        diff_year, diff_month, diff_day, rw, rd = self.date_difference(today, next_date)
         if diff_year == 0 and diff_month == 0 and diff_day == 0:
             return self.today_string_generator()
-        s = self.get_pretty_time(diff_year, diff_month, diff_day)
-
-        return s.format(y=diff_year, m=diff_month, d=diff_day)
+        return self.get_pretty_time(diff_year, diff_month, diff_day, rw,rd)
 
     @classmethod
     def what_is_next(cls, max_num=0, max_date=None):
@@ -324,11 +236,13 @@ class RecurringDate(metaclass=abc.ABCMeta):
         pass
 
     def new_string_generator_base(self, next_date, today):
+        # Generate base text for WHAT IS NEXT
         if next_date < today:
             return self.string_how_long_since_should_have(today, next_date)
-        diff_year, diff_month, diff_day = self.date_difference(today, next_date)
+        diff_year, diff_month, diff_day, rw, rd = self.date_difference(today, next_date)
         s = "{d:02}/{m:02}/{y}, which is {pretty_time} away"
 
+        # If the date is really soon, print 'Today' or 'next Tuesday for example
         if diff_year == 0 and diff_month == 0:
             if diff_day == 0:
                 s = self.today_string_generator()

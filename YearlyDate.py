@@ -20,7 +20,7 @@ class YearlyDate(RecurringDate):
         self._mute = mute
 
         # check syntax via absence of crash:
-        self.old_string_generator(y=1, m=1, d=1)
+        self.old_string_generator(y=1, m=1, d=1, rw=1, rd=1)
         self.new_string_generator(date(1, 1, 1), date(1, 1, 1))
 
     @property
@@ -54,22 +54,22 @@ class YearlyDate(RecurringDate):
                 new_date = date(today.year + 1, self._the_date.month, self._the_date.day)
             return new_date
 
-    def old_string_generator(self, y, m, d):
+    def old_string_generator(self, y, m, d, rw, rd):
         if not self._last:
             return None
         if self._birthday:
             s = "{name} is {pretty_time} old"
-            return s.format(name=self._name, pretty_time=self.get_pretty_time(y, m, d))
+            return s.format(name=self._name, pretty_time=self.get_pretty_time(y, m, d, rw, rd))
         elif self._event is None:
             return None
         else:
             s = "Last {event} was {pretty_time} ago"
             if self._string2 is not None:
                 s = self._string2
-            return s.format(event=self._event, pretty_time=self.get_pretty_time(y, m, d))
+            return s.format(event=self._event, pretty_time=self.get_pretty_time(y, m, d, rw, rd))
 
-    def old_string_generator_should_have(self, y, m, d):
-        return self.old_string_generator(y, m, d)
+    def old_string_generator_should_have(self, y, m, d, rw, rd):
+        return self.old_string_generator(y, m, d, rw, rd)
 
     def today_string_generator(self):
         if self._birthday:
@@ -78,20 +78,20 @@ class YearlyDate(RecurringDate):
             return "{event} is today".format(event=self._event)
 
     def new_string_generator(self, next_date, today):
-        diff_year, diff_month, diff_day = self.date_difference(today, next_date)
+        diff_year, diff_month, diff_day, rw, rd = self.date_difference(today, next_date)
         s = ""
         if diff_year == 0 and diff_month == 0 and diff_day == 0:
             s = self.today_string_generator() + "\n"
         if self._birthday:
             s += "{name_pl} next birthday is on " + self.new_string_generator_base(next_date, today)
             return s.format(name_pl=self._name_plural, y=next_date.year, m=next_date.month, d=next_date.day,
-                            pretty_time=self.get_pretty_time(diff_year, diff_month, diff_day))
+                            pretty_time=self.get_pretty_time(diff_year, diff_month, diff_day, rw, rd))
         elif self._event is None:
             return None
         else:
             s += "Next {event} is on " + self.new_string_generator_base(next_date, today)
             return s.format(event=self._event, y=next_date.year, m=next_date.month, d=next_date.day,
-                            pretty_time=self.get_pretty_time(diff_year, diff_month, diff_day))
+                            pretty_time=self.get_pretty_time(diff_year, diff_month, diff_day, rw, rd))
 
 
 class BirthdayDate(YearlyDate):

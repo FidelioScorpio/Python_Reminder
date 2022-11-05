@@ -24,7 +24,7 @@ class WeeklyDate(RecurringDate):
             self.reminder_col_soon = reminder_col
             
         # check syntax via absence of crash:
-        self.old_string_generator(y=1, m=1, d=1)
+        self.old_string_generator(y=1, m=1, d=1, rw=1, rd=1)
         self.new_string_generator(date(1, 1, 1), date(1, 1, 1))
 
     @property
@@ -50,17 +50,17 @@ class WeeklyDate(RecurringDate):
                 new_date = new_date + timedelta(self._num_weeks * 7)
         return new_date
 
-    def old_string_generator(self, y, m, d):
+    def old_string_generator(self, y, m, d, rw, rd):
         if self._event is None or not self._last:
             return None
         s = "{event} was {pretty_time} ago"
-        return s.format(event=self._event, pretty_time=self.get_pretty_time(y, m, d))
+        return s.format(event=self._event, pretty_time=self.get_pretty_time(y, m, d, rw, rd))
 
-    def old_string_generator_should_have(self, y, m, d):
+    def old_string_generator_should_have(self, y, m, d, rw, rd):
         if self._event is None or not self._red_next:
             return None
         s = "{event} should have been {pretty_time} ago"
-        return s.format(event=self._event, pretty_time=self.get_pretty_time(y, m, d))
+        return s.format(event=self._event, pretty_time=self.get_pretty_time(y, m, d, rw, rd))
 
     def today_string_generator(self, predicted="is"):
         return "{event} {predicted} today".format(event=self._event, predicted=predicted)
@@ -68,7 +68,7 @@ class WeeklyDate(RecurringDate):
     def new_string_generator(self, next_date, today):
         if next_date < today:
             return self.string_how_long_since_should_have(today, next_date)
-        diff_year, diff_month, diff_day = self.date_difference(today, next_date)
+        diff_year, diff_month, diff_day, rw, rd = self.date_difference(today, next_date)
         s = ""
         predicted = "is predicted to happen" if self._predicted else "is"
         if self._num_weeks == 0:
@@ -83,4 +83,4 @@ class WeeklyDate(RecurringDate):
                 s += "Next {event} {predicted} on " + self.new_string_generator_base(next_date, today)
 
         return s.format(event=self._event, y=next_date.year, m=next_date.month, d=next_date.day,
-                        pretty_time=self.get_pretty_time(diff_year, diff_month, diff_day), predicted=predicted)
+                        pretty_time=self.get_pretty_time(diff_year, diff_month, diff_day, rw, rd), predicted=predicted)

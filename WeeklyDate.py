@@ -4,14 +4,11 @@ from RecurringDate import RecurringDate
 
 class WeeklyDate(RecurringDate):
     
-    def __init__(self, the_date, event, num_weeks=1, predicted=False, last=True, red_next=False, one_time=False, reminder_length="1d", reminder_col=""):
+    def __init__(self, the_date, event, num_weeks=1, predicted=False, last=True, one_time=False, reminder_length="1d", reminder_col=""):
         self._the_date = date(the_date.year, the_date.month, the_date.day)
         self._event = event
         self._predicted = predicted
         self._last = last
-        self._red_next = red_next
-        if red_next:
-            self._last = False
         self._num_weeks = int(num_weeks)
         if self._num_weeks < 0:
             raise ValueError("numWeeks should be positive")
@@ -57,7 +54,7 @@ class WeeklyDate(RecurringDate):
         return s.format(event=self._event, pretty_time=self.get_pretty_time(y, m, d))
 
     def old_string_generator_should_have(self, y, m, d):
-        if self._event is None or not self._red_next:
+        if self._event is None or self._last:
             return None
         s = "{event} should have been {pretty_time} ago"
         return s.format(event=self._event, pretty_time=self.get_pretty_time(y, m, d))
